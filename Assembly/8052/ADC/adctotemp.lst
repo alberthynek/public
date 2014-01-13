@@ -1,0 +1,392 @@
+                 -1   $modde2
+0000              1   ;  MODDDE2: Register definition for DE2-8052 softcore
+0000              2   ;
+0000              3   ;   Copyright (C) 2011  Jesus Calvino-Fraga, jesusc at ece.ubc.ca
+0000              4   ;
+0000              5   ;   This library is free software; you can redistribute it and/or
+0000              6   ;   modify it under the terms of the GNU Lesser General Public
+0000              7   ;   License as published by the Free Software Foundation; either
+0000              8   ;   version 2.1 of the License, or (at your option) any later version.
+0000              9   ;
+0000             10   ;   This library is distributed in the hope that it will be useful,
+0000             11   ;   but WITHOUT ANY WARRANTY; without even the implied warranty of
+0000             12   ;   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+0000             13   ;   Lesser General Public License for more details.
+0000             14   ;
+0000             15   ;   You should have received a copy of the GNU Lesser General Public
+0000             16   ;   License along with this library; if not, write to the Free Software
+0000             17   ;   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+0000             18   ;
+0000             19       
+0000             20   P0     DATA  080H  ;PORT 0
+0000             21   SP     DATA  081H  ;STACK POINTER
+0000             22   DPL    DATA  082H  ;DATA POINTER - LOW BYTE
+0000             23   DPH    DATA  083H  ;DATA POINTER - HIGH BYTE
+0000             24   PCON   DATA  087H  ;POWER CONTROL
+0000             25   TCON   DATA  088H  ;TIMER CONTROL
+0000             26   TMOD   DATA  089H  ;TIMER MODE
+0000             27   TL0    DATA  08AH  ;TIMER 0 - LOW BYTE
+0000             28   TL1    DATA  08BH  ;TIMER 1 - LOW BYTE
+0000             29   TH0    DATA  08CH  ;TIMER 0 - HIGH BYTE
+0000             30   TH1    DATA  08DH  ;TIMER 1 - HIGH BYTE
+0000             31   P1     DATA  090H  ;PORT 1
+0000             32   SCON   DATA  098H  ;SERIAL PORT CONTROL
+0000             33   SBUF   DATA  099H  ;SERIAL PORT BUFFER
+0000             34   P2     DATA  0A0H  ;PORT 2
+0000             35   IE     DATA  0A8H  ;INTERRUPT ENABLE
+0000             36   P3     DATA  0B0H  ;PORT 3
+0000             37   IP     DATA  0B8H  ;INTERRUPT PRIORITY
+0000             38   T2CON  DATA  0C8H  ;TIMER 2 CONTROL
+0000             39   T2MOD  DATA  0C9H  ;TIMER 2 MODE
+0000             40   RCAP2L DATA  0CAH  ;TIMER 2 CAPTURE REGISTER - LOW BYTE
+0000             41   RCAP2H DATA  0CBH  ;TIMER 2 CAPTURE REGISTER - HIGH BYTE
+0000             42   TL2    DATA  0CCH  ;TIMER 2 - LOW BYTE
+0000             43   TH2    DATA  0CDH  ;TIMER 2 - HIGH BYTE
+0000             44   PSW    DATA  0D0H  ;PROGRAM STATUS WORD
+0000             45   ACC    DATA  0E0H  ;ACCUMULATOR
+0000             46   B      DATA  0F0H  ;MULTIPLICATION REGISTER
+0000             47   IT0    BIT   088H  ;TCON.0 - EXT. INTERRUPT 0 TYPE
+0000             48   IE0    BIT   089H  ;TCON.1 - EXT. INTERRUPT 0 EDGE FLAG
+0000             49   IT1    BIT   08AH  ;TCON.2 - EXT. INTERRUPT 1 TYPE
+0000             50   IE1    BIT   08BH  ;TCON.3 - EXT. INTERRUPT 1 EDGE FLAG
+0000             51   TR0    BIT   08CH  ;TCON.4 - TIMER 0 ON/OFF CONTROL
+0000             52   TF0    BIT   08DH  ;TCON.5 - TIMER 0 OVERFLOW FLAG
+0000             53   TR1    BIT   08EH  ;TCON.6 - TIMER 1 ON/OFF CONTROL
+0000             54   TF1    BIT   08FH  ;TCON.7 - TIMER 1 OVERFLOW FLAG
+0000             55   RI     BIT   098H  ;SCON.0 - RECEIVE INTERRUPT FLAG
+0000             56   TI     BIT   099H  ;SCON.1 - TRANSMIT INTERRUPT FLAG
+0000             57   RB8    BIT   09AH  ;SCON.2 - RECEIVE BIT 8
+0000             58   TB8    BIT   09BH  ;SCON.3 - TRANSMIT BIT 8
+0000             59   REN    BIT   09CH  ;SCON.4 - RECEIVE ENABLE
+0000             60   SM2    BIT   09DH  ;SCON.5 - SERIAL MODE CONTROL BIT 2
+0000             61   SM1    BIT   09EH  ;SCON.6 - SERIAL MODE CONTROL BIT 1
+0000             62   SM0    BIT   09FH  ;SCON.7 - SERIAL MODE CONTROL BIT 0
+0000             63   EX0    BIT   0A8H  ;IE.0 - EXTERNAL INTERRUPT 0 ENABLE
+0000             64   ET0    BIT   0A9H  ;IE.1 - TIMER 0 INTERRUPT ENABLE
+0000             65   EX1    BIT   0AAH  ;IE.2 - EXTERNAL INTERRUPT 1 ENABLE
+0000             66   ET1    BIT   0ABH  ;IE.3 - TIMER 1 INTERRUPT ENABLE
+0000             67   ES     BIT   0ACH  ;IE.4 - SERIAL PORT INTERRUPT ENABLE
+0000             68   ET2    BIT   0ADH  ;IE.5 - TIMER 2 INTERRUPT ENABLE
+0000             69   EA     BIT   0AFH  ;IE.7 - GLOBAL INTERRUPT ENABLE
+0000             70   RXD    BIT   0B0H  ;P3.0 - SERIAL PORT RECEIVE INPUT
+0000             71   TXD    BIT   0B1H  ;P3.1 - SERIAL PORT TRANSMIT OUTPUT
+0000             72   INT0   BIT   0B2H  ;P3.2 - EXTERNAL INTERRUPT 0 INPUT
+0000             73   INT1   BIT   0B3H  ;P3.3 - EXTERNAL INTERRUPT 1 INPUT
+0000             74   T0     BIT   0B4H  ;P3.4 - TIMER 0 COUNT INPUT
+0000             75   T1     BIT   0B5H  ;P3.5 - TIMER 1 COUNT INPUT
+0000             76   WR     BIT   0B6H  ;P3.6 - WRITE CONTROL FOR EXT. MEMORY
+0000             77   RD     BIT   0B7H  ;P3.7 - READ CONTROL FOR EXT. MEMORY
+0000             78   PX0    BIT   0B8H  ;IP.0 - EXTERNAL INTERRUPT 0 PRIORITY
+0000             79   PT0    BIT   0B9H  ;IP.1 - TIMER 0 PRIORITY
+0000             80   PX1    BIT   0BAH  ;IP.2 - EXTERNAL INTERRUPT 1 PRIORITY
+0000             81   PT1    BIT   0BBH  ;IP.3 - TIMER 1 PRIORITY
+0000             82   PS     BIT   0BCH  ;IP.4 - SERIAL PORT PRIORITY
+0000             83   PT2    BIT   0BDH  ;IP.5 - TIMER 2 PRIORITY
+0000             84   CAP2   BIT   0C8H  ;T2CON.0 - CAPTURE OR RELOAD SELECT
+0000             85   CNT2   BIT   0C9H  ;T2CON.1 - TIMER OR COUNTER SELECT
+0000             86   TR2    BIT   0CAH  ;T2CON.2 - TIMER 2 ON/OFF CONTROL
+0000             87   EXEN2  BIT   0CBH  ;T2CON.3 - TIMER 2 EXTERNAL ENABLE FLAG
+0000             88   TCLK   BIT   0CCH  ;T2CON.4 - TRANSMIT CLOCK SELECT
+0000             89   RCLK   BIT   0CDH  ;T2CON.5 - RECEIVE CLOCK SELECTT
+0000             90   EXF2   BIT   0CEH  ;T2CON.6 - EXTERNAL TRANSITION FLAG
+0000             91   TF2    BIT   0CFH  ;T2CON.7 - TIMER 2 OVERFLOW FLAG
+0000             92   P      BIT   0D0H  ;PSW.0 - ACCUMULATOR PARITY FLAG
+0000             93   OV     BIT   0D2H  ;PSW.2 - OVERFLOW FLAG
+0000             94   RS0    BIT   0D3H  ;PSW.3 - REGISTER BANK SELECT 0
+0000             95   RS1    BIT   0D4H  ;PSW.4 - REGISTER BANK SELECT 1
+0000             96   F0     BIT   0D5H  ;PSW.5 - FLAG 0
+0000             97   AC     BIT   0D6H  ;PSW.6 - AUXILIARY CARRY FLAG
+0000             98   CY     BIT   0D7H  ;PSW.7 - CARRY FLAG
+0000             99   
+0000            100   ; For the altera DE2 configured with an 8051/8052 softcore processor
+0000            101   ; we have the following extra registers:
+0000            102   
+0000            103   HEX0   DATA  091H ; Zero turns the segment on
+0000            104   HEX1   DATA  092H ; 
+0000            105   HEX2   DATA  093H ; 
+0000            106   HEX3   DATA  094H ; 
+0000            107   HEX4   DATA  08EH ;
+0000            108   HEX5   DATA  08FH ;
+0000            109   HEX6   DATA  096H ;
+0000            110   HEX7   DATA  097H ;
+0000            111   
+0000            112   P0MOD  DATA  09AH ; Input/output mode bits for port 0.  '1' sets the port to output mode.
+0000            113   P1MOD  DATA  09BH ; Input/output mode bits for port 1
+0000            114   P2MOD  DATA  09CH ; Input/output mode bits for port 2
+0000            115   P3MOD  DATA  09DH ; Input/output mode bits for port 3
+0000            116   
+0000            117   LEDRA  DATA  0E8H ; LEDs LEDR0 to LEDR7 (bit addressable, ex: LEDRA.1 for LEDR1)
+0000            118   LEDRB  DATA  095H ; LEDs LEDR8 to LEDR15
+0000            119   LEDRC  DATA  09EH ; LEDs LEDR16, LEDR15, and LEDG8
+0000            120   LEDG   DATA  0F8H ; LEDs LEDG0 to LEDG7 (bit addressable, ex: LEDG.3 for LEDG3)
+0000            121   SWA    DATA  0E8H ; Switches SW0 to SW7 (bit addressable, ex: SWA.1 for SW1)
+0000            122   SWB    DATA  095H ; Switches SW8 to SW15
+0000            123   SWC    DATA  09EH ; Switches SW16 and SW17
+0000            124   KEY    DATA  0F8H ; KEY1=KEY.1, KEY2=KEY.2, KEY3=KEY.3.  KEY0 is the reset button! 
+0000            125   
+0000            126   LCD_CMD   DATA 0D8H ;
+0000            127   LCD_DATA  DATA 0D9H ;
+0000            128   LCD_MOD   DATA 0DAH ; Write 0xff to make LCD_DATA an output
+0000            129   LCD_RW    BIT  0D8H ; '0' writes to LCD
+0000            130   LCD_EN    BIT  0D9H ; Toggle from '1' to '0'
+0000            131   LCD_RS    BIT  0DAH ; '0' for commands, '1' for data
+0000            132   LCD_ON    BIT  0DBH ; Write '1' to power the LCD
+0000            133   LCD_BLON  BIT  0DCH ; Write '1' to turn on back light
+0000            134   
+0000            135   FLASH_CMD  data 0DBH ; The control bits of the flash memory:
+0000            136   ; bit 0: FL_RST_N  Set to 1 for normal operation
+0000            137   ; bit 1: FL_WE_N
+0000            138   ; bit 2: FL_OE_N
+0000            139   ; bit 3: FL_CE_N
+0000            140   FLASH_DATA data 0DCH ; 8-bit data bus of flash memory.
+0000            141   FLASH_MOD  data 0DDH ; 0xff makes FLASH_DATA output.  0x00 makes FLASH_DATA input.
+0000            142   FLASH_ADD0 data 0E1H ; address bits 0 to 7.
+0000            143   FLASH_ADD1 data 0E2H ; address bits 8 to 15.
+0000            144   FLASH_ADD2 data 0E3H ; address bits 16 to 21.
+0000            145   
+0000              2   
+0000              3            CSEG at 0
+0000              4            ORG 000H
+0000 020930       5            ljmp startup
+                 -1   	$include(adctable.asm)
+0803           1029            $LIST
+0803              7            
+0030              8            DSEG at 30H
+0030              9            bcd: ds 2
+0032             10            x: ds 2
+0034             11            y: ds 2
+0036             12            
+0000             13            BSEG
+0000             14            nf: dbit 1
+0001             15            
+0803             16            CSEG
+0803             17            
+0803             18            myLUT:
+0803 C0F9A4B0    19       DB 0C0H, 0F9H, 0A4H, 0B0H, 099H        ; 0 TO 4
+     99
+0808 9282F880    20       DB 092H, 082H, 0F8H, 080H, 090H        ; 4 TO 9
+     90
+080D 3FFF        21       DB 03FH, 0FFH                                                   ; minus sign and off
+080F             22       
+080F             23   add16:
+080F C0E0        24            push acc
+0811 C0D0        25            push psw
+0813 E532        26            mov a, x+0
+0815 2534        27            add a, y+0
+0817 F532        28            mov x+0, a
+0819 E533        29            mov a, x+1
+081B 3535        30            addc a, y+1
+081D F533        31            mov x+1, a
+081F D0D0        32            pop psw
+0821 D0E0        33            pop acc
+0823 22          34            ret
+0824             35   
+0824             36   mul16:
+0824 C0E0        37            push acc
+0826 C0F0        38            push b
+0828 C0D0        39            push psw
+082A C000        40            push AR0
+082C C001        41            push AR1
+082E             42                    
+082E             43            ; R0 = x+0 * y+0
+082E             44            ; R1 = x+1 * y+0 + x+0 * y+1
+082E             45            
+082E             46            ; Byte 0
+082E E532        47            mov     a,x+0
+0830 8534F0      48            mov     b,y+0
+0833 A4          49            mul     ab              ; x+0 * y+0
+0834 F8          50            mov     R0,a
+0835 A9F0        51            mov     R1,b
+0837             52            
+0837             53            ; Byte 1
+0837 E533        54            mov     a,x+1
+0839 8534F0      55            mov     b,y+0
+083C A4          56            mul     ab              ; x+1 * y+0
+083D 29          57            add     a,R1
+083E F9          58            mov     R1,a
+083F E4          59            clr     a
+0840 35F0        60            addc a,b
+0842 FA          61            mov     R2,a
+0843             62            
+0843 E532        63            mov     a,x+0
+0845 8535F0      64            mov     b,y+1
+0848 A4          65            mul     ab              ; x+0 * y+1
+0849 29          66            add     a,R1
+084A F9          67            mov     R1,a
+084B             68            
+084B 8933        69            mov     x+1,R1
+084D 8832        70            mov     x+0,R0
+084F             71   
+084F D001        72            pop AR1
+0851 D000        73            pop AR0
+0853 D0D0        74            pop psw
+0855 D0F0        75            pop b
+0857 D0E0        76            pop acc
+0859             77            
+0859 22          78            ret  
+085A             79       
+085A             80       
+085A             81   Display:
+085A 900803      82            mov dptr, #myLUT
+085D             83            ; Display Digit 0
+085D E530        84       mov A, bcd+0
+085F 540F        85       anl a, #0fh
+0861 93          86       movc A, @A+dptr
+0862 F591        87       mov HEX0, A
+0864             88            ; Display Digit 1
+0864 E530        89       mov A, bcd+0
+0866 C4          90       swap a
+0867 540F        91       anl a, #0fh
+0869 93          92       movc A, @A+dptr
+086A F592        93       mov HEX1, A
+086C             94            ; Display Digit 2
+086C E531        95       mov A, bcd+1
+086E 540F        96       anl a, #0fh
+0870 93          97       movc A, @A+dptr
+0871 F593        98       mov HEX2, A
+0873             99            ; Display Digit 3
+0873 E531       100       mov A, bcd+1
+0875 C4         101       swap a
+0876 540F       102       anl a, #0fh
+0878 93         103       movc A, @A+dptr
+0879 F594       104       mov HEX3, A
+087B 22         105       ret
+087C            106   
+087C            107   ClearDisplay:            ;clears display memory and hex displays 0-4
+087C E4         108            clr a
+087D F530       109            mov bcd+0, a  ;bcd+0 is an 8-bit value, but 2 bcd digits
+087F F531       110            mov bcd+1, a
+0881 F532       111            mov bcd+2, a
+0883 759140     112            mov HEX0,#40H ;Displays "0"
+0886 759240     113            mov HEX1,#40H
+0889 759340     114            mov HEX2,#40H
+088C 759440     115            mov HEX3,#40H
+088F 22         116            ret
+0890            117            
+0890            118   Wait50ms:                ;33.33MHz, 1 clk per cycle: 0.03us
+0890 781E       119            mov R0, #30
+0892 794A       120   L3: mov R1, #74
+0894 7AFA       121   L2: mov R2, #250
+0896 DAFE       122   L1: djnz R2, L1 ;3*250*0.03us=22.5us
+0898 D9FA       123       djnz R1, L2 ;74*22.5us=1.665ms
+089A D8F6       124       djnz R0, L3 ;1.665ms*30=50ms
+089C 22         125       ret
+089D            126       
+089D            127   ReadNumber:
+089D 85E832     128       mov x+0, SWA
+08A0 E595       129       mov A, SWB
+08A2 5403       130       anl A, #00000011B
+08A4 F533       131       mov x+1, A
+08A6 22         132       ret
+08A7            133       
+08A7            134   hex2bcd:
+08A7 C0E0       135            push acc
+08A9 C0D0       136            push psw
+08AB C000       137            push AR0
+08AD            138            
+08AD E4         139            clr a
+08AE F530       140            mov bcd+0, a ; Initialize BCD to 00-00-00 
+08B0 F531       141            mov bcd+1, a
+08B2 7810       142            mov r0, #16  ; Loop counter.
+08B4            143   
+08B4            144            hex2bcd_L0:
+08B4            145            ; Shift binary left     
+08B4 E533       146            mov a, x+1
+08B6 A2E7       147            mov c, acc.7 ; This way x remains unchanged!
+08B8 E532       148            mov a, x+0
+08BA 33         149            rlc a
+08BB F532       150            mov x+0, a
+08BD E533       151            mov a, x+1
+08BF 33         152            rlc a
+08C0 F533       153            mov x+1, a
+08C2            154       
+08C2            155            ; Perform bcd + bcd + carry using BCD arithmetic
+08C2 E530       156            mov a, bcd+0
+08C4 3530       157            addc a, bcd+0
+08C6 D4         158            da a
+08C7 F530       159            mov bcd+0, a
+08C9 E531       160            mov a, bcd+1
+08CB 3531       161            addc a, bcd+1
+08CD D4         162            da a
+08CE D2E7       163            setb acc.7
+08D0 C2E6       164            clr acc.6
+08D2 D2E5       165            setb acc.5
+08D4 D2E4       166            setb acc.4
+08D6 300008     167            jnb nf, continue
+08D9 D2E7       168            setb acc.7
+08DB C2E6       169            clr acc.6
+08DD D2E5       170            setb acc.5
+08DF C2E4       171            clr acc.4
+08E1            172            continue:
+08E1 F531       173            mov bcd+1, a
+08E3            174   
+08E3 D8CF       175            djnz r0, hex2bcd_L0
+08E5            176   
+08E5 D000       177            pop AR0
+08E7 D0D0       178            pop psw
+08E9 D0E0       179            pop acc
+08EB 22         180            ret
+08EC            181   
+08EC            182   checkNeg:
+08EC E533       183            mov a, x+1
+08EE 20E703     184            jb acc.7, negative
+08F1 C200       185            clr nf
+08F3 22         186            ret
+08F4            187            negative:
+08F4 1208FA     188            lcall fixNeg
+08F7 D200       189            setb nf
+08F9 22         190            ret
+08FA            191            
+08FA            192   fixNeg:
+08FA C0E0       193            push acc
+08FC C0D0       194            push psw
+08FE C3         195            clr c
+08FF E4         196            clr a
+0900 9532       197            subb a, x+0
+0902 F532       198            mov x+0, a
+0904 E4         199            clr a
+0905 9533       200            subb a, x+1
+0907 F533       201            mov x+1, a
+0909 D0D0       202            pop psw
+090B D0E0       203            pop acc
+090D 22         204            ret
+090E            205            
+090E            206   ADCtoTemp:
+090E 900003     207            mov dptr, #adctable
+0911 753402     208       mov y, #2                        ; Each row has two entries (DW is two bytes)
+0914 120824     209       lcall mul16                ; Increment by two
+0917 858335     210       mov y+1, dph                ; Sets high to the first 8-bits of y
+091A 858234     211       mov y+0, dpl                ; Sets low to the last 8-bits of y
+091D 12080F     212       lcall add16                        ; 
+0920 853383     213       mov dph, x+1                ; Sets high to the first 8-bits of x
+0923 853282     214       mov dpl, x+0                ; Sets low to the last 8-bits of x
+0926            215   
+0926 E4         216       clr a
+0927 93         217       movc a, @a+dptr                ; Selects the first 8-bits to display
+0928 F533       218       mov x+1, a                        ; Sets the first 8-bits of the value
+092A A3         219       inc dptr                        ; Increments dptr to select second bit
+092B E4         220       clr a 
+092C 93         221       movc a, @a+dptr                ; Selects the second 8-bits to display
+092D F532       222       mov x+0, a                        ; Sets the second 8-bits of the value
+092F 22         223       ret  
+0930            224       
+0930            225   Startup:
+0930 75817F     226       mov SP, #7FH
+0933 E4         227            clr a
+0934 F5E8       228            mov LEDRA, a
+0936 F595       229            mov LEDRB, a
+0938 F59E       230            mov LEDRC, a
+093A F5F8       231            mov LEDG, a
+093C F530       232            mov bcd+0, a
+093E F531       233            mov bcd+1, a
+0940 12085A     234            lcall Display
+0943            235            
+0943            236   myProgram:
+0943 12089D     237            lcall ReadNumber
+0946 12090E     238            lcall ADCtoTemp
+0949 1208EC     239            lcall checkNeg
+094C 1208A7     240            lcall hex2bcd
+094F 12085A     241            lcall display
+0952 020943     242            ljmp myProgram
+0955            243            
+0955            244            en

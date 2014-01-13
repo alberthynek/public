@@ -1,0 +1,544 @@
+68000 MACRO ASSEMBLER   Version 5.00   (c) 1992-2005 Peter J.Fondse
+
+Date: 28 Nov 2013      Time: 00:22:38          Source: C:\USERS\ALBERT HYNEK\SKYDRIVE\DOCUMENTS\CROSSIDE\68K\32BITCALC.ASM
+
+                       1   ;
+                       2   ; by Albert Hynek (2013)
+                       3   ;
+                       4   
+          0040 0000    5   PortA	equ	$00400000
+          0040 0002    6   PortB	equ	$00400002
+          0040 0004    7   PortC	equ	$00400004
+          0040 0006    8   PortD	equ	$00400006
+          0040 0010    9   HEXA	equ	$00400010
+          0040 0012   10   HEXB	equ	$00400012
+          0040 0014   11   HEXC	equ	$00400014
+          0040 0016   12   HEXD	equ	$00400016
+                      13   
+00010000              14   	org	$10000	;set the start address for our variables in Ram
+00010000              15   x          ds.l          1
+00010004              16   y          ds.l          1
+00010008              17   bcd	ds.b	5
+                      18   
+00800000              19   	org	$00800000
+00800000  4EF9 0080   20   	jmp startup
+00800004  0360      
+                      21   
+                      22              ; Load the library of 32-bit operations
+                      23              include math32_68k.asm
+                      24   ;----------------------------------------------------
+                      25   ; math32_68k.asm: Addition, subtraction, multiplication,
+                      26   ; and division of 32-bit integers. Also included are
+                      27   ; binary to bcd and bcd to binary conversion subroutines
+                      28   ; and switch reading and display subroutines.
+                      29   ;
+                      30   ; 2013 by Jesus Calvino-Fraga
+                      31   ;
+                      32   ;----------------------------------------------------
+                      33   
+                      34   
+                      35   ;----------------------------------------------------------------------
+                      36   ; This subroutine reads the switches in port A and B and combines then
+                      37   ; into a word.  It is used by get_switch below.
+                      38   ;----------------------------------------------------------------------
+                      39   portAB_to_d1
+00800006  223C 0000   40   	move.l #0, d1
+0080000A  0000      
+0080000C  1239 0040   41   	move.b portB, d1
+00800010  0002      
+00800012  027C FFEF   42   	andi.w  #$ffef, sr ; clear X flag
+00800016  E151        43   	roxl.w #8, d1
+00800018  1239 0040   44   	move.b portA, d1
+0080001C  0000      
+0080001E  0081 0001   45   	ori.l #$10000, d1 ; Sets the end bit
+00800022  0000      
+00800024  4E75        46   	rts
+                      47   
+                      48   ;----------------------------------------------------------------------
+                      49   ; This subroutine checks the toggle switches and returns the number of
+                      50   ; of the first one that is toggled up (1).  For example if SW7 is toggle
+                      51   ; up/down, this subroutine returns 7 in d0.  If no switches are toggled,
+                      52   ; 16 is returned.
+                      53   ;----------------------------------------------------------------------
+                      54   get_switch
+00800026  4EB9 0080   55              jsr portAB_to_d1
+0080002A  0006      
+0080002C  2401        56              move.l d1, d2
+                      57              ; A bit of debouncing
+0080002E  203C 0000   58              move.l #31250,d0	; load d0 with a big number
+00800032  7A12      
+                      59   get_switch_loop
+00800034  5380        60    	subq.l #1,d0		; decrement d0
+00800036  66FC        61   	bne    get_switch_loop		; keep decrementing until d0 = 0
+00800038  4EB9 0080   62              jsr portAB_to_d1
+0080003C  0006      
+0080003E  B441        63              cmp    d1, d2
+00800040  6700 000A   64              beq    get_switch_good      ; If we got the same value after two reads -> good!
+00800044  203C 0000   65              move.l #16, d0
+00800048  0010      
+0080004A  4E75        66              rts
+                      67   get_switch_good
+0080004C  203C 0000   68              move.l #0,d0
+00800050  0000      
+                      69   get_switch_next
+00800052  0101        70              btst d0,d1
+00800054  6600 000C   71              bne get_switch_done
+00800058  0680 0000   72              addi.l #1,d0
+0080005C  0001      
+0080005E  60F2        73              bra get_switch_next
+00800060  4E75        74              rts
+                      75   get_switch_done
+00800062  4EB9 0080   76              jsr portAB_to_d1
+00800066  0006      
+00800068  0281 0000   77              andi.l #$ffff, d1 ; Mask off the end bit
+0080006C  FFFF      
+0080006E  0101        78              btst d0,d1
+00800070  66F0        79              bne get_switch_done ; Wait until the switch is set back to zero
+00800072  4E75        80              rts
+                      81   
+                      82   ;----------------------------------------------------------------------
+                      83   ; Takes the eight least significant bits of 'bcd' and sends them to the
+                      84   ; seven segment displays.
+                      85   ;----------------------------------------------------------------------
+                      86   display_bcd
+00800074  41F9 0001   87   	lea.l   bcd, a0
+00800078  0008      
+0080007A  13D8 0040   88   	move.b (a0)+,HEXA
+0080007E  0010      
+00800080  13D8 0040   89   	move.b (a0)+,HEXB
+00800084  0012      
+00800086  13D8 0040   90   	move.b (a0)+,HEXC
+0080008A  0014      
+0080008C  13D8 0040   91   	move.b (a0)+,HEXD
+00800090  0016      
+00800092  4E75        92   	rts
+                      93   
+                      94   insert_bcd_digit
+00800094  243C 0000   95              move.l #4,d2
+00800098  0004      
+                      96   insert_bcd_digit_loop
+0080009A  41F9 0001   97              lea.l bcd, a0
+0080009E  0008      
+008000A0  027C FFEF   98           	andi.w  #$ffef,  sr     ; clear X flag
+                      99           	; Bcd digits 0 and 1
+008000A4  1210       100   	move.b (A0), d1
+008000A6  E311       101   	roxl.b  #1,d1
+008000A8  10C1       102   	move.b d1, (a0)+
+                     103           	; Bcd digits 2 and 3
+008000AA  1210       104   	move.b (A0), d1
+008000AC  E311       105   	roxl.b  #1,d1
+008000AE  10C1       106   	move.b d1, (a0)+
+                     107           	; Bcd digits 4 and 5
+008000B0  1210       108   	move.b (A0), d1
+008000B2  E311       109   	roxl.b  #1,d1
+008000B4  10C1       110   	move.b d1, (a0)+
+                     111           	; Bcd digits 6 and 7
+008000B6  1210       112   	move.b (A0), d1
+008000B8  E311       113   	roxl.b  #1,d1
+008000BA  10C1       114   	move.b d1, (a0)+
+                     115           	; Bcd digits 8 and 9 have not space.  Set them to zero.
+008000BC  123C 0000  116   	move.b  #0,d1
+008000C0  1081       117   	move.b d1, (a0)
+008000C2  5382       118   	subq.l  #1,d2	; decrement d2
+008000C4  66D4       119   	bne     insert_bcd_digit_loop		; keep decrementing until d2 = 0
+                     120   	; Insert the new digit
+008000C6  41F9 0001  121   	lea.l   bcd, a0
+008000CA  0008      
+008000CC  8110       122   	or.b    d0,(a0)
+008000CE  4E75       123   	rts
+                     124   
+                     125   ;----------------------------------------------------------------------
+                     126   ; This helper subroutine takes a 2-digit packed BCD in d1 and divides it
+                     127   ; by two.  The remainder is returned in X.  It is only called from bcd2bin.
+                     128   ;----------------------------------------------------------------------
+                     129   rrx_fix_bcd
+008000D0  E211       130   	roxr.b  #1,d1
+008000D2  40E7       131   	move.w  sr,-(a7) ; 'push' sr.  The X flag lives in sr.
+008000D4  0801 0007  132   	btst    #7,d1 ; Checks if correction of MSD is needed
+008000D8  6700 0006  133   	beq     rrx_fix_bcd_L0
+008000DC  0441 0030  134   	subi    #$30, d1 ; Apply correction to MSD
+                     135   rrx_fix_bcd_L0
+008000E0  0801 0003  136   	btst    #3,d1 ; Checks if correction of LSD is needed
+008000E4  6700 0006  137   	beq     rrx_fix_bcd_L1
+008000E8  0441 0003  138   	subi    #$03, d1 ; Apply correction to LSD
+                     139   rrx_fix_bcd_L1
+008000EC  46DF       140   	move.w  (a7)+, sr ; 'pop' sr.  Restore the X flag
+008000EE  4E75       141   	rts
+                     142   
+                     143   ;----------------------------------------------------------------------
+                     144   ; This subroutine takes the 10-digit BCD number in 'bcd' and converts it to
+                     145   ; binary.  The result is saved in 'x'.  It uses the reverse double-dabble
+                     146   ; algorithm
+                     147   ;----------------------------------------------------------------------
+                     148   bcd2bin
+008000F0  48A7 E080  149   	movem   d0-d2/a0,-(a7)  ; Saved used registers in the stack
+008000F4  40E7       150   	move.w  sr,-(a7) ; 'push' sr.
+008000F6  243C 0000  151   	move.l	#32,d2		; Up to 32 bits.
+008000FA  0020      
+                     152   bcd2bin_loop
+008000FC  41F9 0001  153   	lea.l	bcd+5, a0
+00800100  000D      
+00800102  027C FFEF  154   	andi.w  #$ffef,  sr     ; clear X flag
+                     155   	; BCD digits 9 and 8
+00800106  1220       156   	move.b	-(A0), d1
+00800108  4EB9 0080  157   	jsr     rrx_fix_bcd
+0080010C  00D0      
+0080010E  1081       158   	move.b	d1, (a0)
+                     159   	; BCD digits 7 and 6
+00800110  1220       160   	move.b	-(A0), d1
+00800112  4EB9 0080  161   	jsr     rrx_fix_bcd
+00800116  00D0      
+00800118  1081       162   	move.b	d1, (a0)
+                     163   	; BCD digits 5 and 4
+0080011A  1220       164   	move.b	-(A0), d1
+0080011C  4EB9 0080  165   	jsr     rrx_fix_bcd
+00800120  00D0      
+00800122  1081       166   	move.b	d1, (a0)
+                     167   	; BCD digits 3 and 2
+00800124  1220       168   	move.b	-(A0), d1
+00800126  4EB9 0080  169   	jsr     rrx_fix_bcd
+0080012A  00D0      
+0080012C  1081       170   	move.b	d1, (a0)
+                     171   	; BCD digits 1 and 0
+0080012E  1220       172   	move.b	-(A0), d1
+00800130  4EB9 0080  173   	jsr     rrx_fix_bcd
+00800134  00D0      
+00800136  1081       174   	move.b	d1, (a0)
+                     175   	; Move the remainder to the binary result
+00800138  E290       176   	roxr.l	#1,d0
+                     177   	; Repeat if needed
+0080013A  5382       178   	subq.l	#1,d2		; decrement d2
+0080013C  66BE       179   	bne	bcd2bin_loop		; keep decrementing until d2 = 0
+                     180   	; Done.  Save to x and restore used registers to their original values
+0080013E  23C0 0001  181   	move.l  d0, x
+00800142  0000      
+00800144  46DF       182   	move.w  (a7)+, sr ; 'pop' sr.
+00800146  4C9F 0107  183   	movem   (a7)+,d0-d2/a0  ; Restore used registers from the stack
+0080014A  4E75       184   	rts
+                     185   
+                     186   ;----------------------------------------------------------------------
+                     187   ; This routine takes the 32-bit binary number in 'x' and converts it to
+                     188   ; BCD.  The result is packed/stored in 'bcd'.  It uses the double-dabble
+                     189   ; algorithm.  The doubling of 'bcd' is performed using the bcd addition
+                     190   ; instruction abcd.
+                     191   ;----------------------------------------------------------------------
+                     192   bin2bcd
+0080014C  48A7 E080  193   	movem d0-d2/a0,-(a7)  ; Saved used registers in the stack
+00800150  40E7       194   	move.w sr,-(a7) ; 'push' sr.
+00800152  2039 0001  195   	move.l  x, d0
+00800156  0000      
+                     196   	; Set initial bcd result to all zeroes.
+00800158  41F9 0001  197   	lea.l	bcd, a0
+0080015C  0008      
+0080015E  10FC 0000  198   	move.b	#0, (a0)+
+00800162  10FC 0000  199   	move.b	#0, (a0)+
+00800166  10FC 0000  200   	move.b	#0, (a0)+
+0080016A  10FC 0000  201   	move.b	#0, (a0)+
+0080016E  10FC 0000  202   	move.b	#0, (a0)+
+00800172  243C 0000  203   	move.l	#32, d2 ; Up to 32 bits.
+00800176  0020      
+                     204   bin2bcd_loop
+00800178  E390       205   	roxl.l	#1,d0
+0080017A  41F9 0001  206   	lea.l	bcd, a0
+0080017E  0008      
+                     207   	; compute bcd=bcd+bcd+X:
+                     208   	; BCD digits 0 and 1
+00800180  1210       209   	move.b	(a0), d1
+00800182  C301       210   	abcd	d1, d1
+00800184  10C1       211   	move.b	d1, (a0)+
+                     212   	; BCD digits 2 and 3
+00800186  1210       213   	move.b	(a0), d1
+00800188  C301       214   	abcd	d1, d1
+0080018A  10C1       215   	move.b	d1, (a0)+
+                     216   	; BCD digits 4 and 5
+0080018C  1210       217   	move.b	(a0), d1
+0080018E  C301       218   	abcd	d1, d1
+00800190  10C1       219   	move.b	d1, (a0)+
+                     220   	; BCD digits 6 and 7
+00800192  1210       221   	move.b	(a0), d1
+00800194  C301       222   	abcd	d1, d1
+00800196  10C1       223   	move.b	d1, (a0)+
+                     224   	; BCD digits 8 and 9
+00800198  1210       225   	move.b	(a0), d1
+0080019A  C301       226   	abcd	d1, d1
+0080019C  10C1       227   	move.b	d1, (a0)+
+0080019E  5382       228   	subq.l	#1, d2 ; decrement d2
+008001A0  66D6       229   	bne	bin2bcd_loop  ; keep decrementing until d2 = 0
+                     230   	; Done
+008001A2  46DF       231   	move.w (a7)+, sr ; 'pop' sr.
+008001A4  4C9F 0107  232   	movem (a7)+,d0-d2/a0  ; Restore used registers from the stack
+008001A8  4E75       233   	rts
+                     234   
+                     235   ;----------------------------------------------------------------------
+                     236   ; mul32: multiplies two 32-bit numbers and get a 32-bit result.
+                     237   ; We use the 16-bit unsigned multiply instruction like this:
+                     238   ;
+                     239   ;         D1 D0
+                     240   ;      x  D3 D2
+                     241   ;      --------
+                     242   ;         HA LA  <-- result of D2xD0
+                     243   ;      HB LB     <-- result of D2xD1
+                     244   ;      HC LC     <-- result of D3xD0
+                     245   ; + HD LD        <-- result of D3xD1
+                     246   ; --------------
+                     247   ;   HD,(HB+HC+LD),(HA+LB+LC),LA  <-- 64 bit result
+                     248   ;
+                     249   ; We just care about the least significant 32 bits: (HA+LB+LC), LA
+                     250   ;----------------------------------------------------------------------
+                     251   mul32
+008001AA  48A7 F800  252   	movem d0-d4,-(a7)  ; Saved used registers in the stack
+008001AE  40E7       253   	move.w sr,-(a7) ; 'push' sr.
+                     254   	; Get x's high and low parts in d1 and d0 respetively
+008001B0  2039 0001  255   	move.l x, d0
+008001B4  0000      
+008001B6  0280 0000  256   	andi.l #$ffff, d0
+008001BA  FFFF      
+008001BC  2239 0001  257   	move.l x, d1
+008001C0  0000      
+008001C2  4841       258   	swap d1
+008001C4  0281 0000  259   	andi.l #$ffff, d1
+008001C8  FFFF      
+                     260   	; Get y's high and low parts in d2 and d3 respetively
+008001CA  2439 0001  261   	move.l y, d2
+008001CE  0004      
+008001D0  0282 0000  262   	andi.l #$ffff, d2
+008001D4  FFFF      
+008001D6  2639 0001  263   	move.l y, d3
+008001DA  0004      
+008001DC  4843       264   	swap d3
+008001DE  0283 0000  265   	andi.l #$ffff, d3
+008001E2  FFFF      
+                     266   	; Compute (HA+LB+LC), LA
+008001E4  2800       267   	move.l d0, d4
+008001E6  C8C2       268   	mulu   d2, d4
+008001E8  C2C2       269   	mulu   d2, d1
+008001EA  4841       270   	swap   d1
+008001EC  0281 FFFF  271   	andi.l #$ffff0000,d1
+008001F0  0000      
+008001F2  D881       272   	add.l  d1, d4
+008001F4  C0C3       273   	mulu   d3, d0
+008001F6  4840       274   	swap d0
+008001F8  0280 FFFF  275   	andi.l #$ffff0000,d0
+008001FC  0000      
+008001FE  D880       276   	add.l  d0, d4
+                     277   	; Save result in x, restore registers, and exit
+00800200  23C4 0001  278   	move.l d4, x
+00800204  0000      
+00800206  46DF       279   	move.w (a7)+, sr ; 'pop' sr.
+00800208  4C9F 001F  280   	movem (a7)+,d0-d4  ; Restore used registers from the stack
+0080020C  4E75       281   	rts
+                     282   
+                     283   ;------------------------------------------------------
+                     284   ; div32: x = x / y
+                     285   ; This subroutine uses the 'paper-and-pencil'
+                     286   ; method described in page 139 of 'Using the
+                     287   ; MCS-51 microcontroller' by Han-Way Huang.
+                     288   ; Obviously it has been translated to 68k assembly!
+                     289   ;------------------------------------------------------
+                     290   div32
+0080020E  48A7 F000  291   	movem   d0-d3,-(a7) ; Saved used registers in the stack
+00800212  40E7       292   	move.w  sr,-(a7) ; 'push' sr.
+00800214  2039 0001  293   	move.l  x, d0
+00800218  0000      
+0080021A  223C 0000  294   	move.l  #0, d1
+0080021E  0000      
+00800220  2439 0001  295   	move.l  y, d2 ; Put denominator in d2 for speed
+00800224  0004      
+00800226  263C 0000  296   	move.l  #32, d3 ; Loop counter.  32 bits.
+0080022A  0020      
+                     297   div32_loop
+                     298   	; shift [d1,d0] left
+0080022C  027C FFEF  299   	andi.w  #$ffef, sr ; clear X flag
+00800230  E390       300   	roxl.l  #1, d0
+00800232  E391       301   	roxl.l  #1, d1
+                     302   	; Check if d1 >= d2.  If true, make d1=d1-d2 and set bit 0 of d0 to 1.
+00800234  B282       303   	cmp.l   d2, d1
+00800236  6D00 000A  304   	blt     div32_nosub
+0080023A  9282       305   	sub.l   d2, d1
+0080023C  0080 0000  306   	ori.l   #1, d0
+00800240  0001      
+                     307   div32_nosub
+00800242  5383       308   	subq.l  #1, d3 ; decrement d3
+00800244  66E6       309   	bne     div32_loop ; keep decrementing until d3 = 0
+00800246  23C0 0001  310   	move.l  d0, x
+0080024A  0000      
+0080024C  46DF       311   	move.w  (a7)+, sr ; 'pop' sr.
+0080024E  4C9F 000F  312   	movem   (a7)+,d0-d3 ; Restore used registers from the stack
+00800252  4E75       313   	rts
+                     314   
+                     315   ;------------------------------------------------
+                     316   ; add32: x = x + y
+                     317   ;------------------------------------------------
+                     318   add32
+00800254  48A7 8000  319   	movem d0,-(a7)  ; Saved used registers in the stack
+00800258  40E7       320   	move.w sr,-(a7) ; 'push' sr.
+0080025A  2039 0001  321   	move.l x, d0
+0080025E  0000      
+00800260  D0B9 0001  322   	add.l y, d0
+00800264  0004      
+00800266  23C0 0001  323   	move.l d0, x
+0080026A  0000      
+0080026C  46DF       324   	move.w (a7)+, sr ; 'pop' sr.
+0080026E  4C9F 0001  325   	movem (a7)+,d0  ; Restore used registers from the stack
+00800272  4E75       326   	rts
+                     327   
+                     328   ;------------------------------------------------
+                     329   ; sub32: x = x - y
+                     330   ;------------------------------------------------
+                     331   sub32
+00800274  48A7 8000  332   	movem d0,-(a7)  ; Saved used registers in the stack
+00800278  40E7       333   	move.w sr,-(a7) ; 'push' sr.
+0080027A  2039 0001  334   	move.l x, d0
+0080027E  0000      
+00800280  90B9 0001  335   	sub.l y, d0
+00800284  0004      
+00800286  23C0 0001  336   	move.l d0, x
+0080028A  0000      
+0080028C  46DF       337   	move.w (a7)+, sr ; 'pop' sr.
+0080028E  4C9F 0001  338   	movem (a7)+,d0  ; Restore used registers from the stack
+00800292  4E75       339   	rts
+                     340   
+                     341   
+                     342   
+                     343   wait2sec
+00800294  203C 005F  344   	move.l #6250000,d0     ; 2 sec
+00800298  5E10      
+                     345   	decLoop:
+0080029A  5380       346      	subq.l #1, d0	; subtracts 1 from d0, sets Z flag when result is zero
+0080029C  66FC       347      	bne decLoop	; loops until z flag is set (counter has counted down to zero)
+0080029E  4E75       348      	rts
+                     349   
+                     350   
+                     351   clear			;clears both x and all bcd variables (and hex displays)
+008002A0  23FC 0000  352   	move.l #0, x
+008002A4  0000 0001 
+008002A8  0000      
+008002AA  4EB9 0080  353   	jsr bin2bcd
+008002AE  014C      
+008002B0  4EB9 0080  354   	jsr display_bcd
+008002B4  0074      
+008002B6  4EF9 0080  355   	jmp calculator
+008002BA  0388      
+                     356   
+                     357   get_operand			;gets a number from the user and displays it
+008002BC  4EB9 0080  358   	jsr get_switch
+008002C0  0026      
+008002C2  0C00 0010  359   	cmp.b #16,d0
+008002C6  67F4       360   	beq get_operand	;if d0 is 16, no switch has been registered, loop back to get_switch
+008002C8  0C00 0009  361   	cmp.b #9,d0
+008002CC  6E00 0014  362   	bgt operand_return	;if a switch from 10-15 has been registered, stop registering switches
+008002D0  4EB9 0080  363   	jsr insert_bcd_digit
+008002D4  0094      
+008002D6  4EB9 0080  364   	jsr display_bcd
+008002DA  0074      
+008002DC  4EF9 0080  365   	jmp     get_operand	;continue displaying and storing input until switches 10-15 are activated
+008002E0  02BC      
+                     366   	operand_return:
+008002E2  0C00 000A  367   	cmp.b #10, d0	;if switch is 10, clear
+008002E6  67B8       368   	beq clear
+008002E8  4E75       369   	rts		;if 11-15 (operators), return
+                     370   
+                     371   operation
+008002EA  4EB9 0080  372   	jsr bcd2bin	;first store second number in x
+008002EE  00F0      
+008002F0  2239 0001  373   	move.l y, d1	;swap x and y
+008002F4  0004      
+008002F6  23F9 0001  374   	move.l x, y
+008002FA  0000 0001 
+008002FE  0004      
+00800300  23C1 0001  375   	move.l d1, x
+00800304  0000      
+00800306  0C07 000F  376   	cmp.b #15, d7
+0080030A  6700 001C  377   	beq addition	;if the stored operation is +, jump to addition
+0080030E  0C07 000E  378   	cmp.b #14, d7
+00800312  6700 0020  379   	beq subtraction	;if -, jump to subtraction
+00800316  0C07 000D  380   	cmp.b #13, d7
+0080031A  6700 0024  381   	beq multiplication	;if *, jump to multiplication
+0080031E  0C07 000C  382   	cmp.b #12, d7
+00800322  6700 0028  383   	beq division	;if /, jump to division
+00800326  4E75       384   	rts		;if somehow no operation was stored, return
+                     385   	addition:
+00800328  4EB9 0080  386   	jsr add32
+0080032C  0254      
+0080032E  4EF9 0080  387   	jmp operation_complete
+00800332  0358      
+                     388   	subtraction:
+00800334  4EB9 0080  389   	jsr sub32
+00800338  0274      
+0080033A  4EF9 0080  390   	jmp operation_complete
+0080033E  0358      
+                     391   	multiplication:
+00800340  4EB9 0080  392   	jsr mul32
+00800344  01AA      
+00800346  4EF9 0080  393   	jmp operation_complete
+0080034A  0358      
+                     394   	division:
+0080034C  4EB9 0080  395   	jsr div32
+00800350  020E      
+00800352  4EF9 0080  396   	jmp operation_complete
+00800356  0358      
+                     397   
+                     398   	operation_complete:
+00800358  4EB9 0080  399   	jsr bin2bcd	;send x to bcd variables and return
+0080035C  014C      
+0080035E  4E75       400   	rts
+                     401   
+                     402   startup
+00800360  23FC 020A  403   	move.l #34224121, x	;send student number to bcd variables
+00800364  37F9 0001 
+00800368  0000      
+0080036A  4EB9 0080  404   	jsr bin2bcd
+0080036E  014C      
+00800370  4EB9 0080  405   	jsr display_bcd	;display student number
+00800374  0074      
+00800376  4EB9 0080  406   	jsr wait2sec	;wait 2 seconds
+0080037A  0294      
+0080037C  4EB9 0080  407   	jsr clear		;stop displaying student number
+00800380  02A0      
+00800382  4EF9 0080  408   	jmp calculator	;jump to my calculator code
+00800386  0388      
+                     409   
+                     410   calculator
+00800388  4EB9 0080  411   	jsr get_operand	;get first number
+0080038C  02BC      
+0080038E  0C00 000B  412   	cmp.b #11, d0
+00800392  67F4       413   	beq calculator	;if user entered equal sign after first number, loop back and get the first number again
+00800394  2E00       414   	move.l d0,d7	;save operator to d7 (so it doesn't get overriden when the next number is entered)
+00800396  4EB9 0080  415   	jsr bcd2bin	;store first number in x
+0080039A  00F0      
+0080039C  23F9 0001  416   	move.l x, y	;move x to y to make room for second number
+008003A0  0000 0001 
+008003A4  0004      
+008003A6  4EB9 0080  417   	jsr get_operand	;get second number
+008003AA  02BC      
+008003AC  4EB9 0080  418   	jsr operation	;do math (we can assume that since we have kicked out of get_operand, the user has input an equals sign)
+008003B0  02EA      
+008003B2  4EB9 0080  419   	jsr display_bcd	;display result
+008003B6  0074      
+008003B8  4EF9 0080  420   	jmp calculator
+008003BC  0388      
+          0001 0000
+
+Assembly errors: 0
+
+
+SYMBOL TABLE
+
+Symbol        Value        Symbol        Value        Symbol        Value
+----------------------     ----------------------     ----------------------
+add32         00800254     addition      00800328     bcd           00010008     
+bcd2bin       008000F0     bcd2bin_loop  008000FC     bin2bcd       0080014C     
+bin2bcd_loop  00800178     calculator    00800388     clear         008002A0     
+decLoop       0080029A     display_bcd   00800074     div32         0080020E     
+div32_loop    0080022C     div32_nosub   00800242     division      0080034C     
+get_operand   008002BC     get_switch    00800026     get_sw.._done 00800062     
+get_sw.._good 0080004C     get_sw.._loop 00800034     get_sw.._next 00800052     
+HEXA          00400010     HEXB          00400012     HEXC          00400014     
+HEXD          00400016     insert..digit 00800094     insert.._loop 0080009A     
+mul32         008001AA     multip..ation 00800340     operan..eturn 008002E2     
+operation     008002EA     operat..plete 00800358     PortA         00400000     
+portAB_to_d1  00800006     PortB         00400002     PortC         00400004     
+PortD         00400006     rrx_fix_bcd   008000D0     rrx_fi..cd_L0 008000E0     
+rrx_fi..cd_L1 008000EC     startup       00800360     sub32         00800274     
+subtraction   00800334     wait2sec      00800294     x             00010000     
+y             00010004     

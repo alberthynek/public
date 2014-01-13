@@ -1,0 +1,3 @@
+"unclassified";("Album1","Performer1","song1","song2","song3","song4");("Album4","Performer1","song1","song2","song3","song4");("Album1","Performer5","song1","song2","song3","song4");
+"Rock";("Abbey Road","The Beatles","Come Together","Something","Maxwell's Silver Hammer","Oh! Darling");["Progressive Rock";("Dark Side of the Moon","Pink Floyd","Speak to Me","Breathe","On the Run","Time");];
+"Metal";("Seventh Son of a Seventh Son","Iron Maiden","Moonchild","Infinite Dreams","Can I Play With Madness","The Evil That Men Do");
