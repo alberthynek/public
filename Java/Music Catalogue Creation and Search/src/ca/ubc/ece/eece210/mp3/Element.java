@@ -3,13 +3,6 @@ package ca.ubc.ece.eece210.mp3;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * An abstract class to represent an entity in the catalogue. The element (in this
- * implementation) can either be an album or a genre.
- * 
- * @author Sathish Gopalakrishnan
- * 
- */
 public abstract class Element {
 	
 	private ArrayList<Element> children = new ArrayList<Element>();
