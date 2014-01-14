@@ -3,7 +3,7 @@ package ca.ubc.ece.eece210.mp3;
 /**
  * Represents a genre (or collection of albums/genres).
  * 
- * @author Sathish Gopalakrishnan
+ * @author Albert Hynek
  * 
  */
 public final class Genre extends Element {
