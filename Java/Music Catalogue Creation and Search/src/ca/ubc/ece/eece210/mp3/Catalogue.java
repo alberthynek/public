@@ -9,13 +9,6 @@ import ca.ubc.ece.eece210.mp3.ast.QueryParser;
 import ca.ubc.ece.eece210.mp3.ast.QueryTokenizer;
 import ca.ubc.ece.eece210.mp3.ast.Token;
 
-/**
- * Container class for all the albums and genres. Its main 
- * responsibility is to save and restore the collection from a file.
- * 
- * @author Sathish Gopalakrishnan
- * 
- */
 public final class Catalogue {
 	
 	public ArrayList<Genre> top_level = new ArrayList<Genre>();
