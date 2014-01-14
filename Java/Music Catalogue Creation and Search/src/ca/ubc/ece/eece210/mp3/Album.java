@@ -2,14 +2,6 @@ package ca.ubc.ece.eece210.mp3;
 
 import java.util.ArrayList;
 
-/**
- * 
- * @author Sathish Gopalakrishnan
- * 
- * This class contains the information needed to represent 
- * an album in our application.
- * 
- */
 
 public final class Album extends Element {
 	private String title;
