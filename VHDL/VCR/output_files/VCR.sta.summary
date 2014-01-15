@@ -1,0 +1,69 @@
+------------------------------------------------------------
+TimeQuest Timing Analyzer Summary
+------------------------------------------------------------
+
+Type  : Slow Model Setup 'LCD_Display:inst7|inst13'
+Slack : -6.493
+TNS   : -108.512
+
+Type  : Slow Model Setup 'Clock'
+Slack : -4.321
+TNS   : -202.048
+
+Type  : Slow Model Hold 'Clock'
+Slack : -2.541
+TNS   : -2.541
+
+Type  : Slow Model Hold 'LCD_Display:inst7|inst13'
+Slack : 0.391
+TNS   : 0.000
+
+Type  : Slow Model Recovery 'LCD_Display:inst7|inst13'
+Slack : -1.372
+TNS   : -19.662
+
+Type  : Slow Model Removal 'LCD_Display:inst7|inst13'
+Slack : 1.446
+TNS   : 0.000
+
+Type  : Slow Model Minimum Pulse Width 'Clock'
+Slack : -1.380
+TNS   : -56.380
+
+Type  : Slow Model Minimum Pulse Width 'LCD_Display:inst7|inst13'
+Slack : -0.500
+TNS   : -29.000
+
+Type  : Fast Model Setup 'LCD_Display:inst7|inst13'
+Slack : -2.285
+TNS   : -35.376
+
+Type  : Fast Model Setup 'Clock'
+Slack : -1.476
+TNS   : -65.677
+
+Type  : Fast Model Hold 'Clock'
+Slack : -1.585
+TNS   : -1.585
+
+Type  : Fast Model Hold 'LCD_Display:inst7|inst13'
+Slack : 0.215
+TNS   : 0.000
+
+Type  : Fast Model Recovery 'LCD_Display:inst7|inst13'
+Slack : -0.198
+TNS   : -1.776
+
+Type  : Fast Model Removal 'LCD_Display:inst7|inst13'
+Slack : 0.754
+TNS   : 0.000
+
+Type  : Fast Model Minimum Pulse Width 'Clock'
+Slack : -1.380
+TNS   : -56.380
+
+Type  : Fast Model Minimum Pulse Width 'LCD_Display:inst7|inst13'
+Slack : -0.500
+TNS   : -29.000
+
+------------------------------------------------------------

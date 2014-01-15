@@ -1,0 +1,486 @@
+0000              1   ; Blinky_Int.asm: blinks LEDR0 of the DE2-8052 each second.
+0000              2   ; Also generates a 2kHz signal at P0.0 using timer 0 interrupt.
+0000              3   ; Also keeps a BCD counter using timer 2 interrupt.
+0000              4   
+                 -1   $MODDE2
+0000              1   ;  MODDDE2: Register definition for DE2-8052 softcore
+0000              2   ;
+0000              3   ;   Copyright (C) 2011  Jesus Calvino-Fraga, jesusc at ece.ubc.ca
+0000              4   ;
+0000              5   ;   This library is free software; you can redistribute it and/or
+0000              6   ;   modify it under the terms of the GNU Lesser General Public
+0000              7   ;   License as published by the Free Software Foundation; either
+0000              8   ;   version 2.1 of the License, or (at your option) any later version.
+0000              9   ;
+0000             10   ;   This library is distributed in the hope that it will be useful,
+0000             11   ;   but WITHOUT ANY WARRANTY; without even the implied warranty of
+0000             12   ;   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+0000             13   ;   Lesser General Public License for more details.
+0000             14   ;
+0000             15   ;   You should have received a copy of the GNU Lesser General Public
+0000             16   ;   License along with this library; if not, write to the Free Software
+0000             17   ;   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+0000             18   ;
+0000             19       
+0000             20   P0     DATA  080H  ;PORT 0
+0000             21   SP     DATA  081H  ;STACK POINTER
+0000             22   DPL    DATA  082H  ;DATA POINTER - LOW BYTE
+0000             23   DPH    DATA  083H  ;DATA POINTER - HIGH BYTE
+0000             24   PCON   DATA  087H  ;POWER CONTROL
+0000             25   TCON   DATA  088H  ;TIMER CONTROL
+0000             26   TMOD   DATA  089H  ;TIMER MODE
+0000             27   TL0    DATA  08AH  ;TIMER 0 - LOW BYTE
+0000             28   TL1    DATA  08BH  ;TIMER 1 - LOW BYTE
+0000             29   TH0    DATA  08CH  ;TIMER 0 - HIGH BYTE
+0000             30   TH1    DATA  08DH  ;TIMER 1 - HIGH BYTE
+0000             31   P1     DATA  090H  ;PORT 1
+0000             32   SCON   DATA  098H  ;SERIAL PORT CONTROL
+0000             33   SBUF   DATA  099H  ;SERIAL PORT BUFFER
+0000             34   P2     DATA  0A0H  ;PORT 2
+0000             35   IE     DATA  0A8H  ;INTERRUPT ENABLE
+0000             36   P3     DATA  0B0H  ;PORT 3
+0000             37   IP     DATA  0B8H  ;INTERRUPT PRIORITY
+0000             38   T2CON  DATA  0C8H  ;TIMER 2 CONTROL
+0000             39   T2MOD  DATA  0C9H  ;TIMER 2 MODE
+0000             40   RCAP2L DATA  0CAH  ;TIMER 2 CAPTURE REGISTER - LOW BYTE
+0000             41   RCAP2H DATA  0CBH  ;TIMER 2 CAPTURE REGISTER - HIGH BYTE
+0000             42   TL2    DATA  0CCH  ;TIMER 2 - LOW BYTE
+0000             43   TH2    DATA  0CDH  ;TIMER 2 - HIGH BYTE
+0000             44   PSW    DATA  0D0H  ;PROGRAM STATUS WORD
+0000             45   ACC    DATA  0E0H  ;ACCUMULATOR
+0000             46   B      DATA  0F0H  ;MULTIPLICATION REGISTER
+0000             47   IT0    BIT   088H  ;TCON.0 - EXT. INTERRUPT 0 TYPE
+0000             48   IE0    BIT   089H  ;TCON.1 - EXT. INTERRUPT 0 EDGE FLAG
+0000             49   IT1    BIT   08AH  ;TCON.2 - EXT. INTERRUPT 1 TYPE
+0000             50   IE1    BIT   08BH  ;TCON.3 - EXT. INTERRUPT 1 EDGE FLAG
+0000             51   TR0    BIT   08CH  ;TCON.4 - TIMER 0 ON/OFF CONTROL
+0000             52   TF0    BIT   08DH  ;TCON.5 - TIMER 0 OVERFLOW FLAG
+0000             53   TR1    BIT   08EH  ;TCON.6 - TIMER 1 ON/OFF CONTROL
+0000             54   TF1    BIT   08FH  ;TCON.7 - TIMER 1 OVERFLOW FLAG
+0000             55   RI     BIT   098H  ;SCON.0 - RECEIVE INTERRUPT FLAG
+0000             56   TI     BIT   099H  ;SCON.1 - TRANSMIT INTERRUPT FLAG
+0000             57   RB8    BIT   09AH  ;SCON.2 - RECEIVE BIT 8
+0000             58   TB8    BIT   09BH  ;SCON.3 - TRANSMIT BIT 8
+0000             59   REN    BIT   09CH  ;SCON.4 - RECEIVE ENABLE
+0000             60   SM2    BIT   09DH  ;SCON.5 - SERIAL MODE CONTROL BIT 2
+0000             61   SM1    BIT   09EH  ;SCON.6 - SERIAL MODE CONTROL BIT 1
+0000             62   SM0    BIT   09FH  ;SCON.7 - SERIAL MODE CONTROL BIT 0
+0000             63   EX0    BIT   0A8H  ;IE.0 - EXTERNAL INTERRUPT 0 ENABLE
+0000             64   ET0    BIT   0A9H  ;IE.1 - TIMER 0 INTERRUPT ENABLE
+0000             65   EX1    BIT   0AAH  ;IE.2 - EXTERNAL INTERRUPT 1 ENABLE
+0000             66   ET1    BIT   0ABH  ;IE.3 - TIMER 1 INTERRUPT ENABLE
+0000             67   ES     BIT   0ACH  ;IE.4 - SERIAL PORT INTERRUPT ENABLE
+0000             68   ET2    BIT   0ADH  ;IE.5 - TIMER 2 INTERRUPT ENABLE
+0000             69   EA     BIT   0AFH  ;IE.7 - GLOBAL INTERRUPT ENABLE
+0000             70   RXD    BIT   0B0H  ;P3.0 - SERIAL PORT RECEIVE INPUT
+0000             71   TXD    BIT   0B1H  ;P3.1 - SERIAL PORT TRANSMIT OUTPUT
+0000             72   INT0   BIT   0B2H  ;P3.2 - EXTERNAL INTERRUPT 0 INPUT
+0000             73   INT1   BIT   0B3H  ;P3.3 - EXTERNAL INTERRUPT 1 INPUT
+0000             74   T0     BIT   0B4H  ;P3.4 - TIMER 0 COUNT INPUT
+0000             75   T1     BIT   0B5H  ;P3.5 - TIMER 1 COUNT INPUT
+0000             76   WR     BIT   0B6H  ;P3.6 - WRITE CONTROL FOR EXT. MEMORY
+0000             77   RD     BIT   0B7H  ;P3.7 - READ CONTROL FOR EXT. MEMORY
+0000             78   PX0    BIT   0B8H  ;IP.0 - EXTERNAL INTERRUPT 0 PRIORITY
+0000             79   PT0    BIT   0B9H  ;IP.1 - TIMER 0 PRIORITY
+0000             80   PX1    BIT   0BAH  ;IP.2 - EXTERNAL INTERRUPT 1 PRIORITY
+0000             81   PT1    BIT   0BBH  ;IP.3 - TIMER 1 PRIORITY
+0000             82   PS     BIT   0BCH  ;IP.4 - SERIAL PORT PRIORITY
+0000             83   PT2    BIT   0BDH  ;IP.5 - TIMER 2 PRIORITY
+0000             84   CAP2   BIT   0C8H  ;T2CON.0 - CAPTURE OR RELOAD SELECT
+0000             85   CNT2   BIT   0C9H  ;T2CON.1 - TIMER OR COUNTER SELECT
+0000             86   TR2    BIT   0CAH  ;T2CON.2 - TIMER 2 ON/OFF CONTROL
+0000             87   EXEN2  BIT   0CBH  ;T2CON.3 - TIMER 2 EXTERNAL ENABLE FLAG
+0000             88   TCLK   BIT   0CCH  ;T2CON.4 - TRANSMIT CLOCK SELECT
+0000             89   RCLK   BIT   0CDH  ;T2CON.5 - RECEIVE CLOCK SELECTT
+0000             90   EXF2   BIT   0CEH  ;T2CON.6 - EXTERNAL TRANSITION FLAG
+0000             91   TF2    BIT   0CFH  ;T2CON.7 - TIMER 2 OVERFLOW FLAG
+0000             92   P      BIT   0D0H  ;PSW.0 - ACCUMULATOR PARITY FLAG
+0000             93   OV     BIT   0D2H  ;PSW.2 - OVERFLOW FLAG
+0000             94   RS0    BIT   0D3H  ;PSW.3 - REGISTER BANK SELECT 0
+0000             95   RS1    BIT   0D4H  ;PSW.4 - REGISTER BANK SELECT 1
+0000             96   F0     BIT   0D5H  ;PSW.5 - FLAG 0
+0000             97   AC     BIT   0D6H  ;PSW.6 - AUXILIARY CARRY FLAG
+0000             98   CY     BIT   0D7H  ;PSW.7 - CARRY FLAG
+0000             99   
+0000            100   ; For the altera DE2 configured with an 8051/8052 softcore processor
+0000            101   ; we have the following extra registers:
+0000            102   
+0000            103   HEX0   DATA  091H ; Zero turns the segment on
+0000            104   HEX1   DATA  092H ; 
+0000            105   HEX2   DATA  093H ; 
+0000            106   HEX3   DATA  094H ; 
+0000            107   HEX4   DATA  08EH ;
+0000            108   HEX5   DATA  08FH ;
+0000            109   HEX6   DATA  096H ;
+0000            110   HEX7   DATA  097H ;
+0000            111   
+0000            112   P0MOD  DATA  09AH ; Input/output mode bits for port 0.  '1' sets the port to output mode.
+0000            113   P1MOD  DATA  09BH ; Input/output mode bits for port 1
+0000            114   P2MOD  DATA  09CH ; Input/output mode bits for port 2
+0000            115   P3MOD  DATA  09DH ; Input/output mode bits for port 3
+0000            116   
+0000            117   LEDRA  DATA  0E8H ; LEDs LEDR0 to LEDR7 (bit addressable, ex: LEDRA.1 for LEDR1)
+0000            118   LEDRB  DATA  095H ; LEDs LEDR8 to LEDR15
+0000            119   LEDRC  DATA  09EH ; LEDs LEDR16, LEDR15, and LEDG8
+0000            120   LEDG   DATA  0F8H ; LEDs LEDG0 to LEDG7 (bit addressable, ex: LEDG.3 for LEDG3)
+0000            121   SWA    DATA  0E8H ; Switches SW0 to SW7 (bit addressable, ex: SWA.1 for SW1)
+0000            122   SWB    DATA  095H ; Switches SW8 to SW15
+0000            123   SWC    DATA  09EH ; Switches SW16 and SW17
+0000            124   KEY    DATA  0F8H ; KEY1=KEY.1, KEY2=KEY.2, KEY3=KEY.3.  KEY0 is the reset button! 
+0000            125   
+0000            126   LCD_CMD   DATA 0D8H ;
+0000            127   LCD_DATA  DATA 0D9H ;
+0000            128   LCD_MOD   DATA 0DAH ; Write 0xff to make LCD_DATA an output
+0000            129   LCD_RW    BIT  0D8H ; '0' writes to LCD
+0000            130   LCD_EN    BIT  0D9H ; Toggle from '1' to '0'
+0000            131   LCD_RS    BIT  0DAH ; '0' for commands, '1' for data
+0000            132   LCD_ON    BIT  0DBH ; Write '1' to power the LCD
+0000            133   LCD_BLON  BIT  0DCH ; Write '1' to turn on back light
+0000            134   
+0000            135   FLASH_CMD  data 0DBH ; The control bits of the flash memory:
+0000            136   ; bit 0: FL_RST_N  Set to 1 for normal operation
+0000            137   ; bit 1: FL_WE_N
+0000            138   ; bit 2: FL_OE_N
+0000            139   ; bit 3: FL_CE_N
+0000            140   FLASH_DATA data 0DCH ; 8-bit data bus of flash memory.
+0000            141   FLASH_MOD  data 0DDH ; 0xff makes FLASH_DATA output.  0x00 makes FLASH_DATA input.
+0000            142   FLASH_ADD0 data 0E1H ; address bits 0 to 7.
+0000            143   FLASH_ADD1 data 0E2H ; address bits 8 to 15.
+0000            144   FLASH_ADD2 data 0E3H ; address bits 16 to 21.
+0000            145   
+0000              6   
+0000              7   org 0000H
+0000 020150       8            ljmp setup
+0003              9            
+000B             10   org 000BH
+000B 0200F6      11            ljmp ISR_timer0
+000E             12            
+001B             13   org 001BH
+001B 020029      14            ljmp ISR_timer1
+001E             15   
+0030             16   DSEG at 30H
+0030             17   hours: ds 1
+0031             18   minutes: ds 1
+0032             19   seconds: ds 1
+0033             20   alarm_hours: ds 1
+0034             21   alarm_minutes: ds 1
+0035             22   alarm_seconds: ds 1
+0036             23   Cnt_10ms:  ds 1
+0037             24   
+0000             25   BSEG
+0000             26   alarm: dbit 1    ;alarm flag - 0 if off, 1 if on
+0001             27   ampm: dbit 1     ;am/pm flag - 0 if am, 1 if pm
+0002             28   alarm_ampm: dbit 1 ;am/pm flag for alarm
+0003             29   
+001E             30   CSEG
+001E             31   
+001E             32   ; Look-up table for 7-segment displays
+001E             33   myLUT:
+001E C0F9A4B0    34       DB 0C0H, 0F9H, 0A4H, 0B0H, 099H
+     99
+0023 9282F880    35       DB 092H, 082H, 0F8H, 080H, 090H
+     90
+0028 FF          36       DB 0FFH ; All segments off
+0029             37   
+0029             38   CLK EQU 33333333
+0029             39   FREQ_0 EQU 200
+0029             40   FREQ_1 EQU 100
+0029             41   TIMER0_RELOAD EQU 65536-(CLK/(12*2*FREQ_0))
+0029             42   TIMER1_RELOAD EQU 65536-(CLK/(12*FREQ_1))
+0029             43   
+0029             44   ISR_timer1:
+0029             45   
+0029 758D93      46       mov TH1, #high(TIMER1_RELOAD)
+002C 758B7F      47       mov TL1, #low(TIMER1_RELOAD)
+002F             48   
+002F C0D0        49            push psw
+0031 C0E0        50            push acc
+0033 C082        51            push dpl
+0035 C083        52            push dph
+0037             53   
+0037 20E839      54            jb SWA.0, clock_update_display  ;time is being set by user - no need to update clock
+003A             55            
+003A E536        56            mov a, Cnt_10ms
+003C 04          57            inc a
+003D F536        58            mov Cnt_10ms, a
+003F B46431      59            cjne a, #100, clock_update_display      ;update display every 10 ms
+0042 753600      60            mov Cnt_10ms, #0        
+0045             61            
+0045 E532        62            mov a, seconds ;if a second has passed, increment seconds displays
+0047 2401        63       add a, #1
+0049 D4          64       da a
+004A F532        65       mov seconds, a
+004C B46024      66       cjne A, #60H, clock_update_display
+004F 753200      67       mov seconds, #0
+0052             68   
+0052 E531        69       mov a, minutes
+0054 2401        70       add a, #1
+0056 D4          71       da a
+0057 F531        72       mov minutes, a
+0059 B46017      73       cjne A, #60H, clock_update_display
+005C 753100      74       mov minutes, #0
+005F             75   
+005F E530        76       mov a, hours
+0061 2401        77       add a, #1
+0063 D4          78       da a
+0064 F530        79       mov hours, a
+0066 B41202      80       cjne A, #12H, tod_continue
+0069 B201        81            cpl ampm
+006B             82            tod_continue:
+006B B41305      83       cjne A, #13H, clock_update_display
+006E 753001      84       mov hours, #1
+0071 B201        85       cpl ampm
+0073             86   
+0073             87   clock_update_display:
+0073 30E906      88            jnb SWA.1, display_clock
+0076 120102      89            lcall alarm_update_display
+0079 0200DD      90            jmp do_nothing
+007C             91            
+007C             92            display_clock:
+007C 90001E      93            mov dptr, #myLUT
+007F             94   
+007F 200105      95            jb ampm, display_pm
+0082 759188      96            mov HEX0, #10001000B
+0085 8003        97            sjmp display_time
+0087             98            display_pm:
+0087 75918C      99            mov HEX0, #10001100B
+008A            100   
+008A            101            display_time:
+008A E532       102            mov a, seconds
+008C 540F       103            anl a, #0fH
+008E 93         104            movc a, @a+dptr
+008F F593       105            mov HEX2, a
+0091 E532       106            mov a, seconds
+0093 C4         107            swap a
+0094 540F       108            anl a, #0fH
+0096 93         109            movc a, @a+dptr
+0097 F594       110            mov HEX3, a
+0099            111   
+0099 E531       112            mov a, minutes
+009B 540F       113            anl a, #0fH
+009D 93         114            movc a, @a+dptr
+009E F58E       115            mov HEX4, a
+00A0 E531       116            mov a, minutes
+00A2 C4         117            swap a
+00A3 540F       118            anl a, #0fH
+00A5 93         119            movc a, @a+dptr
+00A6 F58F       120            mov HEX5, a
+00A8            121   
+00A8 E530       122            mov a, hours
+00AA 540F       123            anl a, #0fH
+00AC 93         124            movc a, @a+dptr
+00AD F596       125            mov HEX6, a
+00AF E530       126            mov a, hours
+00B1 20E402     127            jb acc.4, clock_last_digit
+00B4 74A0       128            mov a, #0A0H            ;turn off HEX7 instead of displaying zero
+00B6            129   clock_last_digit:
+00B6 C4         130            swap a
+00B7 540F       131            anl a, #0fH
+00B9 93         132            movc a, @a+dptr
+00BA F597       133            mov HEX7, a
+00BC            134   check_alarm:
+00BC            135   
+00BC 7400       136            mov a, #0                                               ; check that both the alarm and time are in the same time of day
+00BE 300101     137            jnb ampm, check_alarm_0
+00C1 04         138            inc a
+00C2            139            check_alarm_0:
+00C2 300201     140            jnb alarm_ampm, check_alarm_1
+00C5 04         141            inc a
+00C6            142            check_alarm_1:
+00C6 B40103     143            cjne A, #1, check_alarm_3
+00C9 0200DD     144            jmp do_nothing
+00CC            145            check_alarm_3:
+00CC E530       146            mov a, hours
+00CE B5330C     147            cjne A, alarm_hours, do_nothing
+00D1 E531       148            mov a, minutes
+00D3 B53407     149            cjne A, alarm_minutes, do_nothing
+00D6 E532       150            mov a, seconds
+00D8 B53502     151            cjne A, alarm_seconds, do_nothing
+00DB D200       152            setb alarm
+00DD            153            
+00DD            154   do_nothing:
+00DD 30EA0D     155            jnb SWA.2, timer1_ISR_return
+00E0 C200       156            clr alarm
+00E2 753500     157            mov alarm_seconds, #00H
+00E5 753400     158       mov alarm_minutes, #00H
+00E8 753300     159       mov alarm_hours, #00H
+00EB C202       160       clr alarm_ampm
+00ED            161            timer1_ISR_return:
+00ED D083       162            pop dph
+00EF D082       163            pop dpl
+00F1 D0E0       164            pop acc
+00F3 D0D0       165            pop psw
+00F5            166            
+00F5 32         167            reti
+00F6            168   
+00F6            169   ISR_timer0:
+00F6 300002     170            jnb alarm, alarm_off
+00F9 B280       171            cpl P0.0
+00FB            172            alarm_off:
+00FB 758CE4     173       mov TH0, #high(TIMER0_RELOAD)
+00FE 758AE0     174       mov TL0, #low(TIMER0_RELOAD)
+0101 32         175            reti
+0102            176   
+0102            177   alarm_update_display:
+0102 90001E     178            mov dptr, #myLUT
+0105            179   
+0105 200205     180            jb alarm_ampm, alarm_display_pm
+0108 759188     181            mov HEX0, #10001000B
+010B 8003       182            sjmp alarm_display_time
+010D            183            alarm_display_pm:
+010D 75918C     184            mov HEX0, #10001100B
+0110            185   
+0110            186            alarm_display_time:
+0110 E535       187            mov a, alarm_seconds
+0112 540F       188            anl a, #0fH
+0114 93         189            movc a, @a+dptr
+0115 F593       190            mov HEX2, a
+0117 E535       191            mov a, alarm_seconds
+0119 C4         192            swap a
+011A 540F       193            anl a, #0fH
+011C 93         194            movc a, @a+dptr
+011D F594       195            mov HEX3, a
+011F            196   
+011F E534       197            mov a, alarm_minutes
+0121 540F       198            anl a, #0fH
+0123 93         199            movc a, @a+dptr
+0124 F58E       200            mov HEX4, a
+0126 E534       201            mov a, alarm_minutes
+0128 C4         202            swap a
+0129 540F       203            anl a, #0fH
+012B 93         204            movc a, @a+dptr
+012C F58F       205            mov HEX5, a
+012E            206   
+012E E533       207            mov a, alarm_hours
+0130 540F       208            anl a, #0fH
+0132 93         209            movc a, @a+dptr
+0133 F596       210            mov HEX6, a
+0135 E533       211            mov a, alarm_hours
+0137 20E402     212            jb acc.4, alarm_last_digit
+013A 74A0       213            mov a, #0A0H            ;turn off HEX7 instead of displaying zero
+013C            214   alarm_last_digit:
+013C C4         215            swap a
+013D 540F       216            anl a, #0fH
+013F 93         217            movc a, @a+dptr
+0140 F597       218            mov HEX7, a
+0142 22         219   ret
+0143            220   
+0143            221            
+0143            222   ;For a 33.33MHz clock, one cycle takes 30ns
+0143            223   WaitHalfSec:
+0143 7A5A       224            mov R2, #90
+0145 79FA       225   L3: mov R1, #250
+0147 78FA       226   L2: mov R0, #250
+0149 D8FE       227   L1: djnz R0, L1
+014B D9FA       228            djnz R1, L2
+014D DAF6       229            djnz R2, L3
+014F 22         230            ret
+0150            231            
+0150            232   setup:
+0150 75817F     233            mov SP, #7FH
+0153 75E800     234            mov LEDRA,#0
+0156 759500     235            mov LEDRB,#0
+0159 759E00     236            mov LEDRC,#0
+015C 75F800     237            mov LEDG,#0
+015F 759A01     238            mov P0MOD, #00000001B ; P0.0 as output
+0162 D280       239            setb P0.0
+0164            240   
+0164 753200     241       mov seconds, #00H
+0167 753100     242       mov minutes, #00H
+016A 753012     243       mov hours, #12H
+016D 753500     244       mov alarm_seconds, #00H
+0170 753400     245       mov alarm_minutes, #00H
+0173 753300     246       mov alarm_hours, #00H
+0176 753600     247       mov Cnt_10ms, #0
+0179 C201       248       clr ampm
+017B C202       249       clr alarm_ampm
+017D            250   
+017D            251   
+017D 758911     252       mov TMOD,  #00010001B ; GATE=0, C/T*=0, M1=0, M0=1: 16-bit timer
+0180 C28C       253            clr TR0 ; Disable timer 0
+0182 C28D       254            clr TF0
+0184 758CE4     255       mov TH0, #high(TIMER0_RELOAD)
+0187 758AE0     256       mov TL0, #low(TIMER0_RELOAD)
+018A D28C       257       setb TR0 ; Enable timer 0
+018C D2A9       258       setb ET0 ; Enable timer 0 interrupt
+018E            259       
+018E C28E       260       clr TR1 ; Disable timer 0
+0190 C28F       261            clr TF1
+0192 758D93     262       mov TH1, #high(TIMER1_RELOAD)
+0195 758B7F     263       mov TL1, #low(TIMER1_RELOAD)
+0198 D28E       264       setb TR1 ; Enable timer 0
+019A D2AB       265       setb ET1 ; Enable timer 0 interrupt
+019C            266        
+019C D2AF       267       setb EA  ; Enable all interrupts
+019E            268   
+019E            269   clock:
+019E 30E83E     270            jnb SWA.0, alarm_set
+01A1 20FB15     271            jb KEY.3, KEY_2
+01A4 30FBFD     272            jnb KEY.3, $            ; debounce
+01A7 E530       273            mov a, hours
+01A9 2401       274            add a, #1
+01AB D4         275            da a
+01AC F530       276            mov hours, a
+01AE B41202     277            cjne A, #12H, clock_tod_continue
+01B1 B201       278            cpl ampm
+01B3            279            clock_tod_continue:
+01B3 B41303     280            cjne A, #13H, KEY_2  ; rollover to 1 from 12
+01B6 753001     281            mov hours, #1
+01B9            282            
+01B9            283            KEY_2:
+01B9 20FA10     284            jb KEY.2, KEY_1
+01BC 30FAFD     285            jnb KEY.2, $
+01BF E531       286            mov a, minutes
+01C1 2401       287            add a, #1
+01C3 D4         288            da a
+01C4 F531       289            mov minutes, a
+01C6 B46003     290            cjne A, #60H, KEY_1
+01C9 753101     291            mov minutes, #1
+01CC            292            
+01CC            293            KEY_1:
+01CC 20F9CF     294            jb KEY.1, clock
+01CF 30F9FD     295            jnb KEY.1, $
+01D2 E532       296            mov a, seconds
+01D4 2401       297            add a, #1
+01D6 D4         298            da a
+01D7 F532       299            mov seconds, a
+01D9 B460C2     300            cjne A, #60H, clock
+01DC 753201     301            mov seconds, #1
+01DF            302   
+01DF            303   alarm_set:
+01DF 30E9BC     304            jnb SWA.1, clock
+01E2 20FB15     305            jb KEY.3, a_KEY_2
+01E5 30FBFD     306            jnb KEY.3, $            ; debounce
+01E8 E533       307            mov a, alarm_hours
+01EA 2401       308            add a, #1
+01EC D4         309            da a
+01ED F533       310            mov alarm_hours, a
+01EF B41202     311            cjne A, #12H, alarm_tod_continue
+01F2 B202       312            cpl alarm_ampm
+01F4            313            alarm_tod_continue:
+01F4 B41303     314            cjne A, #13H, a_KEY_2  ; rollover to 1 from 12
+01F7 753301     315            mov alarm_hours, #1
+01FA            316            
+01FA            317            a_KEY_2:
+01FA 20FA10     318            jb KEY.2, a_KEY_1
+01FD 30FAFD     319            jnb KEY.2, $
+0200 E534       320            mov a, alarm_minutes
+0202 2401       321            add a, #1
+0204 D4         322            da a
+0205 F534       323            mov alarm_minutes, a
+0207 B46003     324            cjne A, #60H, a_KEY_1
+020A 753401     325            mov alarm_minutes, #1
+020D            326            
+020D            327            a_KEY_1:
+020D 20F98E     328            jb KEY.1, clock
+0210 30F9FD     329            jnb KEY.1, $
+0213 E535       330            mov a, alarm_seconds
+0215 2401       331            add a, #1
+0217 D4         332            da a
+0218 F535       333            mov alarm_seconds, a
+021A B46003     334            cjne A, #60H, jump_to_clock
+021D 753501     335            mov alarm_seconds, #1
+0220            336            
+0220            337            jump_to_clock:
+0220 02019E     338            ljmp clock
+0223            339   END
